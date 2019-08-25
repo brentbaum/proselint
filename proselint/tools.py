@@ -14,6 +14,7 @@ import re
 import hashlib
 import json
 import importlib
+import pandas as pd
 
 try:
     import dbm
@@ -483,3 +484,44 @@ def context(text, position, level="paragraph"):
         pass
 
     return ""
+
+def p():
+    pass
+
+
+def get_directory_rules(file: str):
+    directory = os.path.dirname(file)
+    print(directory)
+    rules = []
+
+    for filename in os.listdir(directory):
+        if not filename.endswith(".csv"):
+            continue
+        rule_df = pd.read_csv(f'{directory}/{filename}')
+        name_path = directory.split("/")[-2]
+        msg = rule_df["Message"].iloc[0]
+        msg = msg.format("'{}'")
+
+        rules.append({
+            "message": msg,
+            "terms": rule_df["Terms"].dropna(),
+            "suggestions": rule_df["Suggestions"].dropna(),
+            "err": f"legal.{filename.split('.')[0]}"
+        })
+
+    return rules
+
+def make_directory_check(file):
+    rules = get_directory_rules(file)
+
+    def check(text):
+        """Check the text."""
+        err = "legal"
+
+        result = []
+        for rule in rules:
+            result += existence_check(text, rule["terms"], rule["err"], rule["message"])
+
+        return result
+
+    return check

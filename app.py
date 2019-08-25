@@ -8,7 +8,7 @@ from future.moves.urllib.parse import unquote
 import hashlib
 import proselint
 from rq import Queue
-from worker import conn
+from worker import conn, worker_function
 
 
 app = Flask(__name__)
@@ -17,11 +17,6 @@ app.config['CORS_HEADERS'] = "Origin, X-Requested-With, Content-Type, Accept"
 limiter = Limiter(app)
 
 q = Queue(connection=conn)
-
-
-def worker_function(text):
-    """Lint the text using a worker dyno."""
-    return proselint.tools.lint(text)
 
 
 @app.errorhandler(429)
@@ -94,9 +89,16 @@ def lint():
     """Run linter on the provided text and return the results."""
     if 'text' in request.values:
         text = unquote(request.values['text'])
-        job = q.enqueue(worker_function, text)
+        print(text)
+        try:
+            job = q.enqueue(worker_function, text)
+            print(job)
 
-        return jsonify(job_id=job.id), 202
+
+            return jsonify(job_id=job.id), 202
+        except Exception as e:
+            print(e)
+            return False
 
     elif 'job_id' in request.values:
         job = q.fetch_job(request.values['job_id'])
