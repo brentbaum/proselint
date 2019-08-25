@@ -1,4 +1,5 @@
 {
+  "addons": ["heroku-redis"],
   "buildpacks": [
     {
       "url": "heroku/python"
